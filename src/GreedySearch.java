@@ -19,7 +19,7 @@ public class GreedySearch {
     static double maxCap;
 
     public static void main(String[] args) throws IOException{
-        maxCap=read("Problem2.txt");
+        maxCap=read("Problem1.txt");
         vsaMestaOrgranski = new double [mesta.size()];
         vsaMestaPlastika = new double [mesta.size()];
         vsaMestaPapir = new double [mesta.size()];
@@ -36,6 +36,7 @@ public class GreedySearch {
             }
             System.out.println();
         }
+        System.out.println("Pobrano: "+jeCisto(1));
         System.out.println("Plastika: ");
         for(int i=0;i<tPlastika.size();i++) {
             for (int j = 0; j < tPlastika.get(i).pot.size(); j++) {
@@ -43,6 +44,8 @@ public class GreedySearch {
             }
             System.out.println();
         }
+        System.out.println("Pobrano: "+jeCisto(2));
+
         System.out.println("Papir: ");
         for(int i=0;i<tPapir.size();i++) {
             for (int j = 0; j < tPapir.get(i).pot.size(); j++) {
@@ -50,7 +53,46 @@ public class GreedySearch {
             }
             System.out.println();
         }
+        System.out.println("Pobrano: "+jeCisto(3));
 
+        double cena=cost(1, tOrganski)+cost(2, tPlastika) + cost(3, tPapir);
+        System.out.println("Cena vseh treh: "+cena);
+
+    }
+
+    private static double cost(int tip, LinkedList<Tovornjak> tovornjaki){
+        double [] tab;
+        double cena=10*tovornjaki.size();
+        if (tip == 1)
+            tab = vsaMestaOrgranski;
+        else if (tip == 2)
+            tab = vsaMestaPlastika;
+        else
+            tab = vsaMestaPapir;
+        for(int i=0;i<tovornjaki.size();i++){
+            Tovornjak t=tovornjaki.get(i);
+            for(int j=0;j<tovornjaki.get(i).pot.size();j++){
+                if(j!=tovornjaki.get(i).pot.size()-1) {
+                    t.cas += findShortest(mesta.get(tovornjaki.get(i).pot.get(j) - 1), tovornjaki.get(i).pot.get(j + 1)) * 6 / 5;
+                    cena += findShortest(mesta.get(tovornjaki.get(i).pot.get(j) - 1), tovornjaki.get(i).pot.get(j + 1)) * 0.1;
+                    if (tab[tovornjaki.get(i).pot.get(j) - 1] > 0) {
+                        t.cas += 12;
+                    }
+                }
+                if(mesta.get(tovornjaki.get(i).pot.get(j)-1).index == 1 && t.pobrano>0 && j!=0){
+                    t.cas+=30;
+                }
+            }
+            if (t.cas > 8*60){
+                cena += 8*10;
+                cena += (t.cas - 8*60) / 60 * 20;
+            }
+            else {
+                cena += t.cas / 60 * 10;
+            }
+        }
+
+        return cena;
     }
 
     private static double read(String s) throws IOException {
@@ -118,7 +160,7 @@ public class GreedySearch {
             while (index != -1) {
                 t.pot.add(m1.index);
                 naslednje = mesta.get(index - 1);
-                double razdalja = findClosest(m1, naslednje.index);
+                //double razdalja = findClosest(m1, naslednje.index);
                 m1 = naslednje;
                 index = lahkoPobere(t, m1, tab);
                 t.pobrano += m1.getOdpadki(tip);
@@ -139,6 +181,7 @@ public class GreedySearch {
                         for (int j = mesta.get(i).shortestPath.size() - 1; j >= 0; j--) {
                             t.pot.add(mesta.get(i).shortestPath.get(j).index);
                         }
+                        t.pobrano+=tab[i];
                         tab[i]=0;
                         break;
                     }
@@ -161,7 +204,7 @@ public class GreedySearch {
         }
     }
 
-    private static double findClosest(Mesto trenutno, int naslednje){
+    private static double findShortest(Mesto trenutno, int naslednje){
         double min=Double.MAX_VALUE;
         for(int i=0;i<trenutno.sosedje.get(naslednje).size();i++){
             if(trenutno.sosedje.get(naslednje).get(i).velikost<min)
@@ -194,8 +237,10 @@ public class GreedySearch {
             for (int i = 0; i < trenutno.sosedjeIndex.size(); i++) {
                 if (t.pobrano + mesta.get(trenutno.sosedjeIndex.get(i)-1).organski <= maxCap && tab[trenutno.sosedjeIndex.get(i)-1] > 0) {
                     for(int j=0;j<trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).size();j++){
-                        if (trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).kapaciteta >=t.pobrano && trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).velikost < min)
-                            index=trenutno.sosedjeIndex.get(i);
+                        if (trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).kapaciteta >=t.pobrano && trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).velikost < min) {
+                            min=trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).velikost;
+                            index = trenutno.sosedjeIndex.get(i);
+                        }
                     }
                 }
             }
@@ -273,9 +318,6 @@ public class GreedySearch {
 
             }
             obravnavani.add(current);
-
         }
-
     }
-
 }
