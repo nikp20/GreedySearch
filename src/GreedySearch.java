@@ -122,19 +122,22 @@ public class GreedySearch {
                     m1.sosedje.put(m2.index, new LinkedList<Razdalja>());
                 }
                 m1.sosedje.get(m2.index).add(r);
-                m1.sosedjeIndex.add(m2.index);
+                if(!m1.sosedjeIndex.contains(m2.index))
+                    m1.sosedjeIndex.add(m2.index);
                 if (m2.sosedje.get(m1.index) == null) {
                     m2.sosedje.put(m1.index, new LinkedList<Razdalja>());
                 }
                 m2.sosedje.get(m1.index).add(r);
-                m2.sosedjeIndex.add(m1.index);
+                if(!m2.sosedjeIndex.contains(m1.index))
+                    m2.sosedjeIndex.add(m1.index);
             }
             else {
                 if (m1.sosedje.get(m2.index) == null) {
                     m1.sosedje.put(m2.index, new LinkedList<Razdalja>());
                 }
                 m1.sosedje.get(m2.index).add(r);
-                m1.sosedjeIndex.add(m2.index);
+                if(!m1.sosedjeIndex.contains(m2.index))
+                    m1.sosedjeIndex.add(m2.index);
             }
         }
 
@@ -156,22 +159,30 @@ public class GreedySearch {
             Tovornjak t = new Tovornjak(tip);
             Mesto m1 = mesta.get(0);
             Mesto naslednje = new Mesto();
-            int index = lahkoPobere(t, m1, tab);
+            int index=0;
+            int test= lahkoPobere(t, m1, tab);
             while (index != -1) {
                 t.pot.add(m1.index);
-                naslednje = mesta.get(index - 1);
-                //double razdalja = findClosest(m1, naslednje.index);
-                m1 = naslednje;
-                index = lahkoPobere(t, m1, tab);
-                t.pobrano += m1.getOdpadki(tip);
+                t.pobrano+=tab[m1.index-1];
                 tab[m1.index-1]=0;
-                if (index == -1)
+                //double razdalja = findClosest(m1, naslednje.index);
+                index = lahkoPobere(t, m1, tab);
+                if(index==-1)
+                    break;
+                naslednje = mesta.get(index - 1);
+                m1 = naslednje;
+                //t.pobrano += tab[m1.index-1];
+                //tab[m1.index-1]=0;
+                /*if (index == -1) {
                     t.pot.add(m1.index);
+                    t.pobrano+=tab[m1.index-1];
+                    tab[m1.index-1]=0;
+                }*/
             }
             for (int i = m1.shortestPath.size() - 1; i >= 0; i--) {
                 t.pot.add(m1.shortestPath.get(i).index);
             }
-            if(t.pot.size()==0) {
+            if(test==-1) {
                 for (int i = 0; i < tab.length; i++) {
                     if (tab[i] != 0) {
                         for (int j = 0; j < mesta.get(i).shortestPath.size(); j++) {
