@@ -8,17 +8,49 @@ import java.util.Map;
 import java.util.Set;
 
 public class GreedySearch {
+    static LinkedList<Tovornjak> tOrganski=new LinkedList<>();
+    static LinkedList<Tovornjak> tPlastika=new LinkedList<>();
+    static LinkedList<Tovornjak> tPapir=new LinkedList<>();
+    public static double [] vsaMestaOrgranski;
+    public static double [] vsaMestaPlastika;
+    public static double [] vsaMestaPapir;
 
     static LinkedList<Mesto> mesta=new LinkedList<>();
-
+    static double maxCap;
 
     public static void main(String[] args) throws IOException{
-        double maxCap=read("Problem2.txt");
-        dijkstra(mesta.get(0), 0);
+        maxCap=read("Problem2.txt");
+        vsaMestaOrgranski = new double [mesta.size()];
+        vsaMestaPlastika = new double [mesta.size()];
+        vsaMestaPapir = new double [mesta.size()];
+        initVsaMesta();
 
-        for(int i=0; i<mesta.get(19).shortestPath.size();i++){
-            System.out.println(mesta.get(19).shortestPath.get(i).index);
+        dijkstra(mesta.get(0), 0);
+        greedyPot(1);
+        greedyPot(2);
+        greedyPot(3);
+        System.out.println("Organski: ");
+        for(int i=0;i<tOrganski.size();i++) {
+            for (int j = 0; j < tOrganski.get(i).pot.size(); j++) {
+                System.out.println(tOrganski.get(i).pot.get(j));
+            }
+            System.out.println();
         }
+        System.out.println("Plastika: ");
+        for(int i=0;i<tPlastika.size();i++) {
+            for (int j = 0; j < tPlastika.get(i).pot.size(); j++) {
+                System.out.println(tPlastika.get(i).pot.get(j));
+            }
+            System.out.println();
+        }
+        System.out.println("Papir: ");
+        for(int i=0;i<tPapir.size();i++) {
+            for (int j = 0; j < tPapir.get(i).pot.size(); j++) {
+                System.out.println(tPapir.get(i).pot.get(j));
+            }
+            System.out.println();
+        }
+
     }
 
     private static double read(String s) throws IOException {
@@ -68,6 +100,130 @@ public class GreedySearch {
 
     }
 
+    private static void greedyPot(int tip){
+        double [] tab;
+
+        if (tip == 1)
+            tab = vsaMestaOrgranski;
+        else if (tip == 2)
+            tab = vsaMestaPlastika;
+        else
+            tab = vsaMestaPapir;
+
+        while(jeCisto(tip)!=0) {
+            Tovornjak t = new Tovornjak(tip);
+            Mesto m1 = mesta.get(0);
+            Mesto naslednje = new Mesto();
+            int index = lahkoPobere(t, m1, tab);
+            while (index != -1) {
+                t.pot.add(m1.index);
+                naslednje = mesta.get(index - 1);
+                double razdalja = findClosest(m1, naslednje.index);
+                m1 = naslednje;
+                index = lahkoPobere(t, m1, tab);
+                t.pobrano += m1.getOdpadki(tip);
+                tab[m1.index-1]=0;
+                if (index == -1)
+                    t.pot.add(m1.index);
+            }
+            for (int i = m1.shortestPath.size() - 1; i >= 0; i--) {
+                t.pot.add(m1.shortestPath.get(i).index);
+            }
+            if(t.pot.size()==0) {
+                for (int i = 0; i < tab.length; i++) {
+                    if (tab[i] != 0) {
+                        for (int j = 0; j < mesta.get(i).shortestPath.size(); j++) {
+                            t.pot.add(mesta.get(i).shortestPath.get(j).index);
+                        }
+                        t.pot.add(i+1);
+                        for (int j = mesta.get(i).shortestPath.size() - 1; j >= 0; j--) {
+                            t.pot.add(mesta.get(i).shortestPath.get(j).index);
+                        }
+                        tab[i]=0;
+                        break;
+                    }
+                }
+            }
+            if (tip == 1)
+                tOrganski.add(t);
+            else if (tip == 2)
+                tPlastika.add(t);
+            else
+                tPapir.add(t);
+        }
+    }
+
+    public static void initVsaMesta() {
+        for (int i = 0; i<mesta.size(); i++){
+            vsaMestaOrgranski[i] = mesta.get(i).getOdpadki(1);
+            vsaMestaPlastika[i] = mesta.get(i).getOdpadki(2);
+            vsaMestaPapir[i] = mesta.get(i).getOdpadki(3);
+        }
+    }
+
+    private static double findClosest(Mesto trenutno, int naslednje){
+        double min=Double.MAX_VALUE;
+        for(int i=0;i<trenutno.sosedje.get(naslednje).size();i++){
+            if(trenutno.sosedje.get(naslednje).get(i).velikost<min)
+                min=trenutno.sosedje.get(naslednje).get(i).velikost;
+        }
+        return min;
+    }
+
+    public static int jeCisto (int tip){
+
+        int count = 0;
+
+        for (int i = 0; i<vsaMestaOrgranski.length; i++){
+            if (tip == 1 && vsaMestaOrgranski[i] > 0)
+                count++;
+            else if (tip == 2 && vsaMestaPlastika[i] > 0)
+                count++;
+            else if (tip == 3 && vsaMestaPapir[i] > 0)
+                count++;
+        }
+
+        return count;
+    }
+
+
+    private static int lahkoPobere(Tovornjak t, Mesto trenutno, double[] tab){
+        double min=Double.MAX_VALUE;
+        int index=-1;
+        if(t.vrstaSmeti==1) {
+            for (int i = 0; i < trenutno.sosedjeIndex.size(); i++) {
+                if (t.pobrano + mesta.get(trenutno.sosedjeIndex.get(i)-1).organski <= maxCap && tab[trenutno.sosedjeIndex.get(i)-1] > 0) {
+                    for(int j=0;j<trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).size();j++){
+                        if (trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).kapaciteta >=t.pobrano && trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).velikost < min)
+                            index=trenutno.sosedjeIndex.get(i);
+                    }
+                }
+            }
+        }
+        else if(t.vrstaSmeti==2){
+            for (int i = 0; i < trenutno.sosedjeIndex.size(); i++) {
+                if (t.pobrano + mesta.get(trenutno.sosedjeIndex.get(i)-1).plastika <= maxCap && tab[trenutno.sosedjeIndex.get(i)-1] > 0) {
+                    for(int j=0;j<trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).size();j++){
+                        if (trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).kapaciteta >=t.pobrano && trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).velikost<min)
+                            index=trenutno.sosedjeIndex.get(i);
+                    }
+                }
+            }
+        }
+        else{
+            for (int i = 0; i < trenutno.sosedjeIndex.size(); i++) {
+                if (t.pobrano + mesta.get(trenutno.sosedjeIndex.get(i)-1).papir <= maxCap && tab[trenutno.sosedjeIndex.get(i)-1] > 0) {
+                    for(int j=0;j<trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).size();j++){
+                        if (trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).kapaciteta >=t.pobrano && trenutno.sosedje.get(trenutno.sosedjeIndex.get(i)).get(j).velikost<min)
+                            index=trenutno.sosedjeIndex.get(i);
+                    }
+                }
+            }
+        }
+
+        return index;
+    }
+
     private static Mesto getLowestDistanceMesto(Set<Mesto> neobravnavani) {
         Mesto lowestDistanceMesto = new Mesto();
         double lowestDistance = Double.MAX_VALUE;
@@ -80,6 +236,7 @@ public class GreedySearch {
         }
         return lowestDistanceMesto;
     }
+
     private static void CalculateMinimumDistance(Mesto evaluationMesto, double razdalja, Mesto sourceMesto) {
         double sourceDistance = sourceMesto.getDistSource();
         if (sourceDistance + razdalja < evaluationMesto.getDistSource()) {
@@ -89,6 +246,7 @@ public class GreedySearch {
             evaluationMesto.setShortestPath(shortestPath);
         }
     }
+
     public static void dijkstra(Mesto trenutno, double teza){
         Mesto source = trenutno;
         source.setDistSource(0);
